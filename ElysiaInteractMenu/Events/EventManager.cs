@@ -28,11 +28,25 @@ namespace ElysiaInteractMenu
             Nova.server.OnPlayerDamagePlayerEvent += OnPlayerDamage;
             Nova.server.OnPlayerKillPlayerEvent += OnPlayerKillPlayer;
             Nova.server.OnPlayerMoneyEvent += OnPlayerReceiveMoney;
-            //Nova.server.OnMinutePassedEvent += OnMinutePassed;
+            Nova.server.OnMinutePassedEvent += OnMinutePassed;
+            Nova.server.OnPlayerDropItemEvent += OnPlayerDropItem;
         }
 
+        public void OnPlayerDropItem(Player player, int var1, int var2, int var3)
+        {
+            Task.Run(async () =>
+            {
+                if (ElysiaMain.instance.StorageManager.BannedItems.GetBannedItems().Contains(var1))
+                {
+                    Item item = Nova.man.item.GetItem(var1);
+                    if(item == null)return;
+                    await GlobalSender.SendMessageAsync($"{player.steamUsername} a drop {var3}x {var1}-{item.itemName}",embed:true);
 
-       /* public void OnMinutePassed()
+                }
+            });
+        }
+
+        public void OnMinutePassed()
         {
             Task.Run(async () =>{
                 if(ElysiaMain.instance.PlayerAlcoholManager == null) return;
@@ -51,11 +65,10 @@ namespace ElysiaInteractMenu
                     }
                 }
             });
-        }*/
+        }
 
         public void OnHourPassed()
         {
-            
         }
 
         public void OnPlayerReceiveMoney(Player player, int var1, string var2)
@@ -98,7 +111,7 @@ namespace ElysiaInteractMenu
                 {
                     Item item = Nova.man.item.GetItem(var1);
                     if(item == null)return;
-                    await GlobalSender.SendMessageAsync($"{player.steamUsername} a recuperé {var3}x {var1}-{item.itemName} items",embed:true);
+                    await GlobalSender.SendMessageAsync($"{player.steamUsername} a recuperé {var3}x {var1}-{item.itemName}",embed:true);
                 }
             });
         }

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using ElysiaInteractMenu.Commands;
 using ElysiaInteractMenu.Manager;
-using ElysiaInteractMenu.Messages;
 using Life;
 using Life.CharacterSystem;
 using Life.Network;
@@ -21,6 +20,7 @@ namespace ElysiaInteractMenu
         public InvoiceManager InvoiceManager { get; }
         public PlayerAlcoholManager PlayerAlcoholManager { get; }
         public VehicleInfoManager VehicleInfoManager { get; }
+        public PlayerFineManager PlayerFineManager { get; }
         public StorageManager StorageManager { get; set; }
         public LifeServer server { private set; get; }
 
@@ -35,9 +35,8 @@ namespace ElysiaInteractMenu
             InvoiceManager = new InvoiceManager(ElysiaDB);
             PlayerAlcoholManager = new PlayerAlcoholManager();
             VehicleInfoManager = new VehicleInfoManager(ElysiaDB);
-            
+            PlayerFineManager = new PlayerFineManager(ElysiaDB);
         }
-        
 
         public override void OnPluginInit()
         {
@@ -47,15 +46,11 @@ namespace ElysiaInteractMenu
             commandsManagement.parent = this;
             commandsManagement.Initialize();
 
-            //StorageManager = new StorageManager();
-                
+            StorageManager = new StorageManager();
             new EventManager();
-
             
-
             Nova.man.StartCoroutine(CalculateDistance());
         }
-        
         
         public override void OnPlayerEnterVehicle(Vehicle vehicle, int seatId, Player player)
         {
@@ -68,9 +63,8 @@ namespace ElysiaInteractMenu
                 VehicleInfoManager.AddVehicleInfo(player.character.Id,closest.vehicleDbId);
             }
             VehicleInfoManager.PlayersDriving.Add(player);
-
         }
-
+        
         public IEnumerator CalculateDistance()
         {
             while (true)

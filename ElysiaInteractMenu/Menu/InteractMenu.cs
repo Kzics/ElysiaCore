@@ -100,6 +100,9 @@ namespace ElysiaInteractMenu
                         player.ClosePanel(panel);
                     });
                     player.ShowPanelUI(amountPanel);
+                }).AddTabLine("Payer mes amendes", panel =>
+                {
+                    
                 });
             if (player.HasBiz())
             {

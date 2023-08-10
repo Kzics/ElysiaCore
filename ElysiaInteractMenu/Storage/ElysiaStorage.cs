@@ -8,11 +8,11 @@ namespace ElysiaInteractMenu.Storage
     public abstract class ElysiaStorage
     {
         protected JObject _jObject;
-        protected string _filePath;
+        protected string FileName;
         
-        public ElysiaStorage(string filePath) 
+        protected ElysiaStorage(string fileName) 
         {
-            _filePath = filePath;
+            FileName = fileName;
         }
 
         public JArray GetJArray(string key)
@@ -37,33 +37,36 @@ namespace ElysiaInteractMenu.Storage
 
         public virtual void Load()
         {
-            _jObject = JObject.Parse(File.ReadAllText(_filePath));
-
+            if (File.Exists(FileName))
+            {
+                _jObject = JObject.Parse(File.ReadAllText(FileName));
+            }
         }
         public abstract void Save();
     }
 
     public class JsonStorage : ElysiaStorage
     {
-        private string FilePath { get; set; }
-        
-        public JsonStorage(string filePath) : base(filePath)
+            
+        protected JsonStorage(string fileName) : base(fileName)
         {
-            FilePath = filePath;
         }
-
+        
         public override void Save()
         {
-            throw new System.NotImplementedException();
+            if (_jObject != null)
+            {
+                File.WriteAllText(FileName, _jObject.ToString());
+            }
         }
     }
 
     public class SQLStorage : ElysiaStorage
     {
         private SQLiteAsyncConnection db;
-        public SQLStorage(string filePath) : base(filePath)
+        public SQLStorage(string fileName) : base(fileName)
         {
-            _filePath = filePath;
+            FileName = fileName;
         }
 
         public override void Save()
@@ -74,45 +77,44 @@ namespace ElysiaInteractMenu.Storage
     public class BannedItems : JsonStorage
     {
         private List<int> _bannedItems = new List<int>();
-        public BannedItems(string filePath) : base(filePath)
+        public BannedItems(string fileName) : base(fileName)
         {
-            _filePath = filePath;
-            string folderPath = Path.GetDirectoryName(filePath);
-
-            if (!Directory.Exists(folderPath))
+            if (!Directory.Exists(Path.Combine(ElysiaMain.instance.pluginsPath,"ElysiaCore")))
             {
-                Directory.CreateDirectory(folderPath);
+                Directory.CreateDirectory(Path.Combine(ElysiaMain.instance.pluginsPath,"ElysiaCore"));
             }
 
-            if (!File.Exists(filePath))
+            if (!File.Exists(Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/" + fileName)))
             {
-                File.WriteAllText(filePath, new JObject(
-                    new JProperty("0",36),
-                    new JProperty("1",106),
-                    new JProperty("1",107),
-                    new JProperty("2",37),
-                    new JProperty("3",58),
-                    new JProperty("4",96),
-                    new JProperty("5",102),
-                    new JProperty("6",103),
-                    new JProperty("7",104),
-                    new JProperty("8",105),
-                    new JProperty("9",1159),
-                    new JProperty("10",1172),
-                    new JProperty("11",1235),
-                    new JProperty("12",1296),
-                    new JProperty("13",1368),
-                    new JProperty("14",1369),
-                    new JProperty("15",1463),
-                    new JProperty("16",1464),
-                    new JProperty("17",1465)
-                ).ToString());
+                File.WriteAllText(Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/" + fileName), new JObject(
+                    new JProperty("key0", 36),
+                    new JProperty("key1", 106),
+                    new JProperty("key2", 107),
+                    new JProperty("key3", 37),
+                    new JProperty("key4", 58),
+                    new JProperty("key5", 96),
+                    new JProperty("key6", 102),
+                    new JProperty("key7", 103),
+                    new JProperty("key8", 104),
+                    new JProperty("key9", 105),
+                    new JProperty("key10", 1159),
+                    new JProperty("key11", 1172),
+                    new JProperty("key12", 1235),
+                    new JProperty("key13", 1296),
+                    new JProperty("key14", 1368),
+                    new JProperty("key15", 1369),
+                    new JProperty("key16", 1463),
+                    new JProperty("key17", 1464),
+                    new JProperty("key18", 1465)
+                ).ToString());            
             }
+            Load();
         }
+        
 
         public override void Load()
         {
-            _jObject = JObject.Parse(File.ReadAllText(_filePath));
+            _jObject = JObject.Parse(File.ReadAllText(Path.Combine(ElysiaMain.instance.pluginsPath,"ElysiaCore/" + FileName)));
         }
 
         public List<int> GetBannedItems()
@@ -120,48 +122,57 @@ namespace ElysiaInteractMenu.Storage
             if (_bannedItems.Count != 0) return _bannedItems;
             
 
-            if (_jObject == null) return new List<int>();
+            if (_jObject == null) return new List<int>(){1,2};
             List<int> banned = new List<int>();
             
-            foreach (var token in _jObject)
+
+            foreach (var property in _jObject.Properties())
             {
-                banned.Add((int)token.Value);
+                if (property.Value is JValue value && value.Type == JTokenType.Integer)
+                {
+                    banned.Add((int)value);
+                }
             }
 
             return banned;
         } 
-
-        public override void Save()
-        {
-        }
+        
     }
 
 
     public class ConfigStorage : JsonStorage
     {
-        public ConfigStorage(string filePath) : base(filePath)
+        public ConfigStorage(string fileName) : base(fileName)
         {
-            string folderPath = Path.GetDirectoryName(filePath);
 
-            if (!Directory.Exists(folderPath))
+            if (!Directory.Exists(Path.Combine(ElysiaMain.instance.pluginsPath,"ElysiaCore")))
             {
-                Directory.CreateDirectory(folderPath);
+                Directory.CreateDirectory(Path.Combine(ElysiaMain.instance.pluginsPath,"ElysiaCore"));
             }
 
-            if (!File.Exists(filePath))
+            if (!File.Exists(Path.Combine(ElysiaMain.instance.pluginsPath,"ElysiaCore/" + fileName)))
             {
-                File.WriteAllText(filePath,new JObject(
-                    new JProperty("global_webhook","URL_WEBHOOK"),
-                    new JProperty("staff_webhook","URL_WEBHOOK"),
-                    new JProperty("life_webhook","URL_WEBHOOK"),
-                    new JProperty("biz_webhook","URL_WEBHOOK")
-                    ).ToString());
-            }
+                var jsonObject = new JObject(
+                    new JProperty("global_webhook", "URL_WEBHOOK"),
+                    new JProperty("staff_webhook", "URL_WEBHOOK"),
+                    new JProperty("life_webhook", "URL_WEBHOOK"),
+                    new JProperty("biz_webhook", "URL_WEBHOOK")
+                );
+
+                var crimesList = new JObject(
+                    new JProperty("Meurtre", 500),
+                    new JProperty("Delit de fuite", 100)
+                );
+
+                jsonObject.Add("infractions", crimesList);
+
+                File.WriteAllText(Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/" + fileName), jsonObject.ToString());            }
+            Load();
         }
 
         public override void Load()
         {
-            _jObject = JObject.Parse(File.ReadAllText(_filePath));
+            _jObject = JObject.Parse(File.ReadAllText(Path.Combine(ElysiaMain.instance.pluginsPath,"ElysiaCore/" + FileName)));
 
         }
 
@@ -169,6 +180,22 @@ namespace ElysiaInteractMenu.Storage
         public string GetWebhookUrl(string key)
         {
             return (string) _jObject[key];
+        }
+
+        public Dictionary<string, int> GetCrimes()
+        {
+            Dictionary<string, int> infractionDict = new Dictionary<string, int>();
+            if (_jObject.TryGetValue("infractions", out JToken infractions))
+            {
+                foreach (var infraction in infractions)
+                {
+                    string infractionName = ((JProperty)infractions).Name;
+                    int infractionValue = (int)((JProperty)infractions).Value;
+                    infractionDict.Add(infractionName, infractionValue);
+                }
+            }
+
+            return infractionDict;
         }
     }
 }

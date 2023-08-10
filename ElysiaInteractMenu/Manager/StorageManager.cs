@@ -11,10 +11,10 @@ namespace ElysiaInteractMenu.Manager
         
         public StorageManager()
         {
-            BannedItems = new BannedItems(Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/bannedItems.json"));
-            BannedItems.Load();
+            BannedItems = new BannedItems("bannedItems.json");
+            //BannedItems.Load();
 
-            //ConfigStorage = new ConfigStorage(Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/config.json"));
+            ConfigStorage = new ConfigStorage("config.json");
 
         }
         

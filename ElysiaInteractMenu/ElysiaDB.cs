@@ -13,11 +13,12 @@ namespace ElysiaInteractMenu
             db = LifeDB.db;
             db.CreateTableAsync<Invoices>();
             db.CreateTableAsync<VehicleInfos>();
+            db.CreateTableAsync<PlayerFines>();
         }
         
         public async Task<List<Invoices>> LoadInvoices() => await db.Table<Invoices>().ToListAsync();
-
         public async Task<List<VehicleInfos>> LoadVehicleInfos() => await db.Table<VehicleInfos>().ToListAsync();
+        public async Task<List<PlayerFines>> LoadPlayerFines() => await db.Table<PlayerFines>().ToListAsync();
 
         public async Task CreateVehicleInfo(VehicleInfo vehicleInfo)
         {

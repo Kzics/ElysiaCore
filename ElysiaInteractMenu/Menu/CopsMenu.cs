@@ -1,4 +1,5 @@
 using System;
+using ElysiaInteractMenu.Fine;
 using Life.Network;
 using Life.UI;
 
@@ -71,6 +72,18 @@ namespace ElysiaInteractMenu
                         player.Notify("Police",player.GetFullName() + " refuse");
                     });
                     closestPlayer.ShowPanelUI(askPanel);
+                }).AddTabLine("Mettre une amende", panel =>
+                {
+                    Player closestPlayer = player.GetClosestPlayer();
+                    if (closestPlayer == null)
+                    {
+                        player.Notify("Police","Aucun joueur autour");
+                        return;
+                    }
+                    player.ClosePanel(panel);
+                    new FineMenu("Amendes", player,closestPlayer);
+
+
                 });
         }
 
