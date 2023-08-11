@@ -4,7 +4,7 @@ namespace ElysiaInteractMenu
 {
     public class PlayerFines
     {
-        [PrimaryKey]
+        [PrimaryKey,AutoIncrement]
         public int FineId { get; set;}
         public int SenderId { get; set;}
         public int ReceiverId { get; set;}

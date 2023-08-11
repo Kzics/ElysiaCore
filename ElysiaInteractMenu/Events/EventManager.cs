@@ -11,8 +11,9 @@ namespace ElysiaInteractMenu
 {
     public class EventManager : IEvents
     {
-        public DiscordWebhookSender GlobalSender;
-        public DiscordWebhookSender LifeSender;
+        protected DiscordWebhookSender GlobalSender;
+        protected DiscordWebhookSender LifeSender;
+        public Action<PlayerFine,Player,Player> OnPlayerSendFineEvent;
         
         public EventManager()
         {
@@ -30,6 +31,17 @@ namespace ElysiaInteractMenu
             Nova.server.OnPlayerMoneyEvent += OnPlayerReceiveMoney;
             Nova.server.OnMinutePassedEvent += OnMinutePassed;
             Nova.server.OnPlayerDropItemEvent += OnPlayerDropItem;
+            
+            //Custom Events
+            OnPlayerSendFineEvent += OnPlayerSendFine;
+        }
+
+        public void OnPlayerSendFine(PlayerFine fine, Player var1, Player var2)
+        {
+            Task.Run(async () =>
+            {
+                await LifeSender.SendMessageAsync($"{var1.steamUsername} a envoyé une amende à {var2.steamUsername} pour le motif {fine.Reason}",embed:true);
+            });
         }
 
         public void OnPlayerDropItem(Player player, int var1, int var2, int var3)
@@ -53,6 +65,7 @@ namespace ElysiaInteractMenu
                 
                 await ElysiaMain.instance.VehicleInfoManager.Save();
                 await ElysiaMain.instance.InvoiceManager.Save();
+                await ElysiaMain.instance.PlayerFineManager.Save();
 
                 PlayerAlcoholManager alcoholManager = ElysiaMain.instance.PlayerAlcoholManager;
                 foreach (int key in alcoholManager.AlcoholData.Keys)
@@ -69,6 +82,29 @@ namespace ElysiaInteractMenu
 
         public void OnHourPassed()
         {
+            foreach (var fine in ElysiaMain.instance.PlayerFineManager.PlayerFines)
+            {
+                if (DateTimeOffset.Now.ToUnixTimeSeconds() > 604800L)
+                {
+                    int characterId = fine.ReceiverId;
+                    Player player = Nova.server.GetPlayer(characterId);
+                    if (player.isInGame)
+                    {
+                        player.Notify("Police","Vous avez été forcé de payer une amende");
+                    }
+
+                    player.character.Bank -= Convert.ToInt32(fine.Amount * 1.7);
+                    fine.IsPaid = true;
+
+                    int senderId = fine.SenderId;
+                    Player sender = Nova.server.GetPlayer(senderId);
+                    if (sender.isInGame)
+                    {
+                        player.Notify("Police",$"{player.GetFullName()} été forcé de payer une amende");
+                    }
+                }
+                
+            }
         }
 
         public void OnPlayerReceiveMoney(Player player, int var1, string var2)
@@ -126,6 +162,12 @@ namespace ElysiaInteractMenu
 
         public void OnPlayerConnect(Player player)
         {
+            ElysiaMain.instance.PlayerFineManager.PlayerFines.Add(new PlayerFine()
+            {
+                Amount = 10,IsPaid = false,Reason = "Meurtre",
+                ReceiverId = player.character.Id, SenderId = player.character.Id,SentTimestamp = DateTimeOffset.Now.ToUnixTimeSeconds()
+            });
+            
             Task.Run(async () =>
             {
                 await GlobalSender.SendMessageAsync($"{player.steamUsername} ({player.conn.address}) a rejoint le serveur sous le personnage {player.GetFullName()}",embed:true);

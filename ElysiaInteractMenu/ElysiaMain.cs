@@ -20,9 +20,10 @@ namespace ElysiaInteractMenu
         public InvoiceManager InvoiceManager { get; }
         public PlayerAlcoholManager PlayerAlcoholManager { get; }
         public VehicleInfoManager VehicleInfoManager { get; }
-        public PlayerFineManager PlayerFineManager { get; }
+        public PlayerFineManager PlayerFineManager { get; set; }
         public StorageManager StorageManager { get; set; }
-        public LifeServer server { private set; get; }
+        public EventManager EventManager { get; set; }
+        public LifeServer server {get; }
 
         private CommandsManagement commandsManagement;
 
@@ -35,20 +36,19 @@ namespace ElysiaInteractMenu
             InvoiceManager = new InvoiceManager(ElysiaDB);
             PlayerAlcoholManager = new PlayerAlcoholManager();
             VehicleInfoManager = new VehicleInfoManager(ElysiaDB);
-            PlayerFineManager = new PlayerFineManager(ElysiaDB);
         }
 
         public override void OnPluginInit()
         {
             base.OnPluginInit();
-
             commandsManagement = new CommandsManagement();
             commandsManagement.parent = this;
             commandsManagement.Initialize();
 
             StorageManager = new StorageManager();
-            new EventManager();
-            
+            EventManager = new EventManager();
+            PlayerFineManager = new PlayerFineManager(ElysiaDB);
+
             Nova.man.StartCoroutine(CalculateDistance());
         }
         

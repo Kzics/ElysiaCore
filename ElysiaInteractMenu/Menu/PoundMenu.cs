@@ -1,4 +1,5 @@
 using System.Collections;
+using ElysiaInteractMenu.Menu;
 using Life;
 using Life.CharacterSystem;
 using Life.Network;

@@ -16,6 +16,7 @@ namespace ElysiaInteractMenu
         void OnPlayerReceiveMoney(Player player, int var1, string var2);
         void OnHourPassed();
         void OnPlayerDropItem(Player player, int var1,int var2,int var3);
+        void OnPlayerSendFine(PlayerFine fine, Player var1, Player var2);
 
     }
 }

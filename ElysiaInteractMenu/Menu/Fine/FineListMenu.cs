@@ -2,15 +2,17 @@ using System;
 using System.Collections.Generic;
 using Life;
 using Life.Network;
+using Life.UI;
 
-namespace ElysiaInteractMenu.Fine
+namespace ElysiaInteractMenu.Menu.Fine
 {
-    public class FineListMenu : InteractMenu
+    public class FineListMenu : UIPanel
     {
-        public FineListMenu(string title, Player player) : base(title, MenuType.Cops, player)
+        public FineListMenu(string title, Player player) : base(title, PanelType.Tab)
         {
             int characterId = player.character.Id;
             List<PlayerFine> fines = ElysiaMain.instance.PlayerFineManager.GetPlayerFines(characterId);
+
 
             foreach (var fine in fines)
             {
@@ -27,7 +29,7 @@ namespace ElysiaInteractMenu.Fine
                     multiplier = 1.7;
                 }
                 
-                AddTabLine($"Motif:{fine.Reason} Montant: {fine.Amount} * {multiplier}", panel =>
+                AddTabLine($"Motif:{fine.Reason} Montant: {fine.Amount} * ({multiplier}) $", panel =>
                 {
                     int bankAmount = player.character.Bank;
 
@@ -41,15 +43,22 @@ namespace ElysiaInteractMenu.Fine
                     
                     player.Notify("Police","Vous avez payé l'amende");
 
+                    ElysiaMain.instance.PlayerFineManager.PlayerFines.Remove(fine);
+
                     Player sender = Nova.server.GetPlayer(fine.SenderId);
+
+                    player.SendText("Here");
 
                     if (sender != null)
                     {
                         sender.Notify("Police",player.GetFullName() + " a payé son amende");
                     }
+                    player.ClosePanel(panel);
                 });
             }
-            player.ShowPanelUI(this);
+
+            AddButton("Payer", panel => panel.SelectTab());
+            AddButton("Quitter",panel =>player.ClosePanel(panel));
         }
 
     }

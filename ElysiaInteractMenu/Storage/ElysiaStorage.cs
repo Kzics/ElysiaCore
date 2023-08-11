@@ -189,8 +189,8 @@ namespace ElysiaInteractMenu.Storage
             {
                 foreach (var infraction in infractions)
                 {
-                    string infractionName = ((JProperty)infractions).Name;
-                    int infractionValue = (int)((JProperty)infractions).Value;
+                    string infractionName = ((JProperty)infraction).Name;
+                    int infractionValue = (int)((JProperty)infraction).Value;
                     infractionDict.Add(infractionName, infractionValue);
                 }
             }

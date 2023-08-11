@@ -1,11 +1,12 @@
 using System;
 using Life.Network;
+using Life.UI;
 
-namespace ElysiaInteractMenu.Fine
+namespace ElysiaInteractMenu.Menu.Fine
 {
-    public class FineMenu : InteractMenu
+    public class FineMenu : UIPanel
     {
-        public FineMenu(string title,Player player,Player receiver) : base(title,MenuType.Cops,player)
+        public FineMenu(string title,Player player,Player receiver) : base(title,PanelType.Tab)
         {
             foreach (var entry in ElysiaMain.instance.StorageManager.ConfigStorage.GetCrimes())
             {
@@ -26,6 +27,8 @@ namespace ElysiaInteractMenu.Fine
                     player.Notify("Police", "Vous avez envoyé une <color=green>amende");
                     receiver.Notify("Police","Vous avez recu une <color=red>amende");
 
+                    ElysiaMain.instance.EventManager.OnPlayerSendFineEvent(playerFine,player,receiver);
+
                     player.ClosePanel(this);
                 });
             }
@@ -36,8 +39,6 @@ namespace ElysiaInteractMenu.Fine
             });
 
             AddButton("Envoyer", panel => panel.SelectTab());
-            
-            player.ShowPanelUI(this);
         }
     }
 }

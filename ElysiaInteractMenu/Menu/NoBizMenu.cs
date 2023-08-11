@@ -1,3 +1,4 @@
+using ElysiaInteractMenu.Menu;
 using Life.Network;
 
 namespace ElysiaInteractMenu

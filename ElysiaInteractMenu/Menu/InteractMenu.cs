@@ -1,10 +1,11 @@
 using System;
+using ElysiaInteractMenu.Menu.Fine;
 using Life;
 using Life.DB;
 using Life.Network;
 using UIPanel = Life.UI.UIPanel;
 
-namespace ElysiaInteractMenu
+namespace ElysiaInteractMenu.Menu
 {
     public abstract class InteractMenu : UIPanel
     {
@@ -102,7 +103,9 @@ namespace ElysiaInteractMenu
                     player.ShowPanelUI(amountPanel);
                 }).AddTabLine("Payer mes amendes", panel =>
                 {
-                    
+                    player.ClosePanel(panel);
+                    FineListMenu fineListMenu = new FineListMenu("Amendes", player);
+                    player.ShowPanelUI(fineListMenu);
                 });
             if (player.HasBiz())
             {

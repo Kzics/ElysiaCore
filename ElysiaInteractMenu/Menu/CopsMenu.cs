@@ -1,5 +1,6 @@
 using System;
-using ElysiaInteractMenu.Fine;
+using ElysiaInteractMenu.Menu;
+using ElysiaInteractMenu.Menu.Fine;
 using Life.Network;
 using Life.UI;
 
@@ -81,9 +82,8 @@ namespace ElysiaInteractMenu
                         return;
                     }
                     player.ClosePanel(panel);
-                    new FineMenu("Amendes", player,closestPlayer);
-
-
+                    FineMenu fineMenu = new FineMenu("Amendes", player,player);
+                    player.ShowPanelUI(fineMenu);
                 });
         }
 

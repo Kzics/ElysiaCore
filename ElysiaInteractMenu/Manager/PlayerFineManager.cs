@@ -6,13 +6,14 @@ namespace ElysiaInteractMenu.Manager
 {
     public class PlayerFineManager
     {
-        public List<PlayerFine> PlayerFines { get; }
+        public List<PlayerFine> PlayerFines { get; set; }
 
         private ElysiaDB ElysiaDB;
         
         public PlayerFineManager(ElysiaDB elysiaDB)
         {
             ElysiaDB = elysiaDB;
+            PlayerFines = new List<PlayerFine>();
             LoadFines();
         }
 
@@ -40,7 +41,25 @@ namespace ElysiaInteractMenu.Manager
                 PlayerFines.Add(playerFine);
             }
         }
-        
-        
+
+
+        public async Task Save()
+        {
+            await ElysiaDB.db.DeleteAllAsync<PlayerFines>();
+            
+            List<PlayerFine> fines = ElysiaMain.instance.PlayerFineManager.PlayerFines;
+
+            foreach (var fine in fines)
+            {
+                await ElysiaDB.db.InsertAsync(new PlayerFines()
+                {
+                    SenderId = fine.SenderId,
+                    ReceiverId = fine.ReceiverId,
+                    Reason = fine.Reason,
+                    IsPaid = fine.IsPaid,
+                    SentTimestamp = fine.SentTimestamp
+                });
+            }
+        }
     }
 }
