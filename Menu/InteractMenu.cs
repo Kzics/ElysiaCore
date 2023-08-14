@@ -1,6 +1,5 @@
 using System;
 using ElysiaInteractMenu.Menu.Fine;
-using FirstGearGames.Utilities.Networks;
 using Life;
 using Life.DB;
 using Life.Network;
@@ -28,10 +27,6 @@ namespace ElysiaInteractMenu.Menu
                     
                     player.ShowPanelUI(kmPanel);
                 });
-            }
-            else
-            {
-                Debug.Log("re");
             }
 
             AddButton("Voir ma carte", panel =>
@@ -142,6 +137,8 @@ namespace ElysiaInteractMenu.Menu
         private bool IsPlayerPassenger(Player player)
         {
             Vehicle vehicle = player.GetClosestVehicle();
+            
+            if (vehicle == null) return false;
 
             foreach (NetVehicleSeat netSeat in vehicle.netSeats)
             {

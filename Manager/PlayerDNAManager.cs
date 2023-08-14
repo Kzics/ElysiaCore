@@ -22,6 +22,18 @@ namespace ElysiaInteractMenu.Manager
         
         public PlayerDNA getDna(string dnaCode) => playerDNAS.FirstOrDefault(dna => dna.DnaCode == dnaCode);
 
+        public bool IsFound(string dnaCode)
+        {
+            PlayerDNA playerDna = playerDNAS.Where(dna => dna.DnaCode == dnaCode).FirstOrDefault();
+
+            if (playerDna != null)
+            {
+                return playerDna.IsFound;
+            }
+
+            return false;
+        }
+
         public void FindDna(string dnaCode) => playerDNAS[0].IsFound = true;
         protected async Task LoadDnas()
         {

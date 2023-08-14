@@ -9,5 +9,7 @@ namespace ElysiaInteractMenu
         public int Amount;
         public bool IsPaid;
         public long SentTimestamp;
+        public string Type;
+        public int VehicleId;
     }
 }

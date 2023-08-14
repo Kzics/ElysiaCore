@@ -2,11 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using ElysiaInteractMenu.Commands;
 using ElysiaInteractMenu.Discord;
 using ElysiaInteractMenu.Manager;
+using ElysiaInteractMenu.Menu.Fine;
 using Life;
 using Life.AreaSystem;
 using Life.BizSystem;
@@ -16,6 +18,7 @@ using Life.UI;
 using Life.VehicleSystem;
 using Socket.Newtonsoft.Json;
 using Socket.Newtonsoft.Json.Linq;
+using Socket.WebSocket4Net.System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -36,7 +39,7 @@ namespace ElysiaInteractMenu
         private CommandsManagement commandsManagement;
         public DiscordWebhookSender BizSender;
         public Dictionary<InteractableDoor,List<string>> doors = new Dictionary<InteractableDoor,List<string>>();
-
+        public List<ElysiaPlayer> Players = new List<ElysiaPlayer>();
         
         public Dictionary<string, Vector3> adminAreas { private set; get; } = new Dictionary<string, Vector3>();
 
@@ -91,9 +94,18 @@ namespace ElysiaInteractMenu
                 VehicleInfoManager.AddVehicleInfo(player.character.Id,closest.vehicleDbId);
             }
             VehicleInfoManager.PlayersDriving.Add(player);
+
+
+            
+            List<PlayerFine> vehicleFines = PlayerFineManager.GetPlayerFines(player.character.Id);
+
+            if (vehicleFines != null && vehicleFines.Count != 0)
+            {
+                FineListMenu fineListMenu = new FineListMenu("Rappel Amendes",player);
+                player.ShowPanelUI(fineListMenu);
+            }
         }
-
-
+        
         public void LoadCurrentBizBank()
         {
             foreach (var biz in Nova.biz.bizs)
@@ -209,50 +221,90 @@ namespace ElysiaInteractMenu
                                 InteractableDoor interactableDoor = hitValue.collider.GetComponent<InteractableDoor>();
                                 if (!(bool)(UnityEngine.Object)interactableDoor)
                                     interactableDoor = hitValue.collider.GetComponentInParent<InteractableDoor>();
-
                                 if(Nova.ui.GetAction(0))
                                 {
                                     AddDnaToDoor(player,interactableDoor);
                                 }
 
-                                if (!IsPoliceMan(player)) continue;
+                                ElysiaPlayer elysiaPlayer = new ElysiaPlayer(player);
+                                
+                                if (!elysiaPlayer.IsPoliceMan()) continue;
 
 
-                                Nova.ui.SetAction(2, "Crocheter", interactableDoor.isLocked);
+                                Nova.ui.SetAction(2, "Enfoncer", interactableDoor.isLocked);
                                 Nova.ui.SetAction(3,"Verifier Empreintes",true);
                                 
                                 Nova.ui.ShowActions(true);
                                 
-                                if (Nova.ui.GetAction(2) && interactableDoor.isLocked)
+                                if (Nova.ui.GetAction(2) && interactableDoor.isLocked && !elysiaPlayer.IsForceEnter)
                                 {
-                                    interactableDoor.SetLocalDoorState(true, false);
-                                    interactableDoor.UpdateServerDoorState();
-                                    
-                                    AddDnaToDoor(player,interactableDoor);
+                                    player.SendText("Vous enfoncez la porte");
+
+                                    player.setup.NetworkisFreezed = true;
+
+                                    Nova.man.StartCoroutine(BreakingDoor(player,interactableDoor));
+                                    elysiaPlayer.IsForceEnter = true;
+
                                 }
-                                
 
                                 if (Nova.ui.GetAction(3))
                                 {
                                     UIPanel dnaPanel = new UIPanel("Empreintes",UIPanel.PanelType.Tab);
                                     foreach (var dna in doors[interactableDoor])
                                     {
-                                        dnaPanel.AddTabLine($"Adn: {dna}", panel =>
+                                        if (PlayerDnaManager.IsFound(dna))
                                         {
-
-                                        });
+                                            dnaPanel.AddTabLine($"Adn: {dna}", panel =>
+                                            {
+                                            });
+                                        }
+                                        else
+                                        {
+                                            dnaPanel.AddTabLine($"Adn: {dna}    INCONNU", panel =>
+                                            {
+                                            });
+                                            player.Notify("Police","Vous avez découvert de nouveaux <color=green> ADN");
+                                            
+                                            PlayerDnaManager.FindDna(dna);
+                                        }
+                                        
                                     }
 
                                     dnaPanel.AddButton("Confirmer", pan => player.ClosePanel(pan));
+                                    Nova.server.SendLocalText("Procède à un relevé d’ADN et l’analyse",3f,player.setup.gameObject.transform.position);
                                     
                                     player.ShowPanelUI(dnaPanel);
                                 }
 
-                            }
+                            }/*else if (hitValue.collider.tag.Equals("Placeable"))
+                            {
+                                Nova.ui.SetAction(0,"Utiliser",true);
+                                Nova.ui.ShowActions(true);
+
+                                if (Nova.ui.GetAction(0))
+                                {
+                                    player.SendText("Cliqué");
+                                }
+                            }*/
                         }
                     }
                 }
             }
+        }
+
+
+        public ElysiaPlayer GetPlayer(Player player) =>
+            Players.Where(p => p.Player.netId == player.netId).FirstOrDefault();
+
+        private IEnumerator BreakingDoor(Player player, InteractableDoor interactableDoor)
+        {
+            yield return new WaitForSeconds(4f);
+            interactableDoor.SetLocalDoorState(true, false);
+            interactableDoor.UpdateServerDoorState();
+            Nova.server.SendLocalText("Porte enfoncé",2f,player.setup.gameObject.transform.position);
+            AddDnaToDoor(player,interactableDoor);
+            
+            player.setup.NetworkisFreezed = false;
         }
 
         private void AddDnaToDoor(Player player, InteractableDoor interactableDoor)
@@ -277,31 +329,17 @@ namespace ElysiaInteractMenu
             }
 
         }
-
-        public bool IsPoliceMan(Player player)
-        {
-            if (!player.HasBiz()) return false;
-
-            foreach (Activity.Type activity in Nova.biz.GetBizActivities(player.biz.Id))
-            {
-                if (activity == Activity.Type.LawEnforcement)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
+        
 
         public override void OnPlayerInput(Player player, KeyCode keyCode, bool onUI)
         {
             if (keyCode == KeyCode.P && !onUI)
             {
-                Task.Run(() =>
+                /*Task.Run(() =>
                 {
                     //Nova.man.StartCoroutine(Perform(player));
                     // NetworkServer.Spawn(CreateMenuCanvas(),player.conn);
-                });
+                });*/
 
                 if (!player.HasBiz())
                 {
@@ -313,7 +351,7 @@ namespace ElysiaInteractMenu
                 string activites = player.biz.Activities;
                 JObject activitiesObject = JObject.Parse(activites);
                 JArray jArray = activitiesObject["ids"] as JArray;
-
+                
                 if (jArray[0].Value<int>() == 0)
                 {
                     player.ShowPanelUI(new CopsMenu("Interactions-Police", MenuType.Cops, player));

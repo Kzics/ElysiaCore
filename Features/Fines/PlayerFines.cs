@@ -12,5 +12,7 @@ namespace ElysiaInteractMenu
         public int Amount { get; set;}
         public bool IsPaid { get; set;}
         public long SentTimestamp { get; set;}
+        public string Type { get; set; }
+        public int VehicleId { get; set; }
     }
 }

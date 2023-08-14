@@ -22,6 +22,12 @@ namespace ElysiaInteractMenu.Manager
         {
             return PlayerFines.Where(fine => fine.ReceiverId == characterId).ToList();
         }
+
+        public List<PlayerFine> GetVehicleFines(int characterId)
+        {
+            return PlayerFines.Where(fine => fine.Type.Equals("VEHICLE") && fine.ReceiverId == characterId).ToList();
+
+        }
         protected async Task LoadFines()
         {
             List<PlayerFines> playerFinesAsync = await ElysiaDB.LoadPlayerFines();
@@ -35,7 +41,9 @@ namespace ElysiaInteractMenu.Manager
                     Reason = playerFineAsync.Reason,
                     ReceiverId = playerFineAsync.ReceiverId,
                     SenderId = playerFineAsync.SenderId,
-                    SentTimestamp = playerFineAsync.SentTimestamp
+                    SentTimestamp = playerFineAsync.SentTimestamp,
+                    Type = playerFineAsync.Type,
+                    VehicleId = playerFineAsync.VehicleId
                 };
 
                 PlayerFines.Add(playerFine);

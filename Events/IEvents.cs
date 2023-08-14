@@ -1,3 +1,4 @@
+using Life.CheckpointSystem;
 using Life.Network;
 using Mirror;
 

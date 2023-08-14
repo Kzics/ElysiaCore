@@ -1,10 +1,14 @@
 using System;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using ElysiaInteractMenu.Checkpoints;
 using ElysiaInteractMenu.Discord;
 using ElysiaInteractMenu.Features.ADN;
 using ElysiaInteractMenu.Storage;
 using Life;
+using Life.CharacterSystem;
+using Life.CheckpointSystem;
 using Life.InventorySystem;
 using Life.Network;
 using Life.UI;
@@ -41,7 +45,9 @@ namespace ElysiaInteractMenu
             OnPlayerSendFineEvent += OnPlayerSendFine;
             OnPlayerPayFineEvent += OnPlayerPayFine;
         }
+
         
+
         public void onPlayerUseCommand(Player player, SChatCommand command)
         {
             if (command.fullCommandName.Equals("/serviceadmin"))
@@ -131,7 +137,8 @@ namespace ElysiaInteractMenu
                 
                 await ElysiaMain.instance.VehicleInfoManager.Save();
                 await ElysiaMain.instance.InvoiceManager.Save();
-                //await ElysiaMain.instance.PlayerFineManager.Save();
+                await ElysiaMain.instance.PlayerFineManager.Save();
+                ElysiaMain.instance.StorageManager.BraceletStorage.Save();
 
                 PlayerAlcoholManager alcoholManager = ElysiaMain.instance.PlayerAlcoholManager;
                 foreach (int key in alcoholManager.AlcoholData.Keys)
@@ -244,23 +251,76 @@ namespace ElysiaInteractMenu
 
         public void OnPlayerConnect(Player player)
         {
+            ElysiaMain.instance.Players.Add(new ElysiaPlayer(player));
+            
             if (ElysiaMain.instance.PlayerDnaManager.getDna(player.character.Id) == null)
             {
                 ElysiaMain.instance.PlayerDnaManager.playerDNAS.Add(new PlayerDNA()
                 {
                     CharacterId = player.character.Id,
                     DnaCode = GenerateRandomCode(9),
-                    IsFound = true
+                    IsFound = false
                 });
             }
             Task.Run(async () =>
             {
+
                 await GlobalSender.SendMessageAsync($"**{player.steamUsername}** ({player.conn.address}) a rejoint le serveur sous le personnage **{player.GetFullName()}**",embed:true);
             });
+            ConfigStorage configStorage = ElysiaMain.instance.StorageManager.ConfigStorage;
+            
+            NCheckpoint armoryCheckpoint = new NCheckpoint(player.netId,configStorage.GetPolicePosition(),(
+                checkpoint =>
+                {
+                    ElysiaPlayer elysiaPlayer = new ElysiaPlayer(player);
+                    if (!elysiaPlayer.IsPoliceMan())
+                    {
+                        player.Notify("Police","Vous n'etes pas policier",NotificationManager.Type.Error);
+                        
+                        return;
+                    }
+
+                    UIPanel servicePanel = new UIPanel("Equipements",UIPanel.PanelType.Tab);
+
+                    if (elysiaPlayer.LastTookEquipment + (60 * 1000L) < DateTime.Now.Millisecond)
+                    {
+                        servicePanel.AddTabLine("Recuperer équipement", panel =>
+                        {
+                            player.setup.inventory.AddItem(6, 1, "");
+                            player.setup.inventory.AddItem(7, 48, "");
+                            player.setup.inventory.AddItem(36, 1, "");
+
+                            player.Notify("Police", "Vous etes en service!");
+                        });
+
+                        elysiaPlayer.LastTookEquipment = DateTime.Now.Millisecond;
+                    }
+                    else
+                    {
+                        player.Notify("Info","Vous pouvez recuperer un equipement toute les heures");
+                    }
+
+                    servicePanel.AddTabLine("Rendre l'équipement", panel =>
+                    {
+                        player.setup.inventory.RemoveItem(6,1,true);
+                        player.setup.inventory.RemoveItem(7, 48,true);
+                        player.setup.inventory.RemoveItem(36, 1,true);
+                        
+                        player.Notify("Police","Vous n'êtes plus en service!");
+
+                    });
+
+                    servicePanel.AddButton("Confirmer",panel => panel.SelectTab());
+                    
+                    player.ShowPanelUI(servicePanel);
+                } ));
+            
+            player.CreateCheckpoint(armoryCheckpoint);
+            player.SendText("created");
         }
         private string GenerateRandomCode(int length)
         {
-            const string alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const string alphabet = "1234567890";
             StringBuilder codeBuilder = new StringBuilder();
 
             for (int i = 0; i < length; i++)
@@ -269,8 +329,14 @@ namespace ElysiaInteractMenu
                 char randomChar = alphabet[randomIndex];
                 codeBuilder.Append(randomChar);
             }
+            string randomCode = codeBuilder.ToString();
 
-            return codeBuilder.ToString();
+            while (ElysiaMain.instance.PlayerDnaManager.getDna(codeBuilder.ToString()) != null)
+            {
+                randomCode = GenerateRandomCode(length);
+            }
+
+            return randomCode;
         }
 
         public void OnPlayerBuyTerrain(Player player, int var1, int var2)
@@ -283,66 +349,24 @@ namespace ElysiaInteractMenu
 
         public void OnPlayerDisconnect(NetworkConnection conn)
         {
-
+            ElysiaMain.instance.Players.Remove(new ElysiaPlayer(GetPlayerFromConn(conn)));
             Task.Run(async () =>
             {
                 await GlobalSender.SendMessageAsync($" ({conn.address}) a **quitté** le serveur",embed:true);
             });
         }
-        /* public override async void OnPlayerText(Player player, string message)
-         {
-             if (!player.IsAdmin) return;
-             if (!message.StartsWith("/")) return;
- 
-             string[] cmdArgs = message.Substring(1).Split(' ');
- 
-             string affectedPlayer = cmdArgs[1];
-             string senderPlayer = player.steamUsername;
- 
-             DiscordWebhookSender sender = new DiscordWebhookSender(
-                 "https://discord.com/api/webhooks/1138574860646367312/XvCTWkMfUqeyIPkNtdRJXawCxBAyXxQS_m_3p6Zd6rn0ISz759CMRgvCzIXkg65c1Gt8");
- 
-             switch (cmdArgs[0])
-             {
-                 case "ban-ip":
-                     string bannedReason;
- 
-                     if (cmdArgs.Length < 3)
-                     {
-                         bannedReason = "Aucune";
-                     }
-                     else
-                     {
-                         string[] reasonArgs = new string[cmdArgs.Length - 2];
-                         Array.Copy(cmdArgs, 2, reasonArgs, 0, cmdArgs.Length - 2);
- 
-                         bannedReason = string.Join(" ", reasonArgs);
-                     }
-                     
-                     await sender.SendMessageAsync($"{senderPlayer} a ban-IP {affectedPlayer} pour le motif: {bannedReason}");
-                     break;
-                 case "kick":
-                     string kickedReason;
-                     
-                     if (cmdArgs.Length < 3)
-                     {
-                         kickedReason = "Aucune";
-                     }
-                     else
-                     {
-                         string[] reasonArgs = new string[cmdArgs.Length - 2];
-                         Array.Copy(cmdArgs, 2, reasonArgs, 0, cmdArgs.Length - 2);
- 
-                         kickedReason = string.Join(" ", reasonArgs);
-                     }
-                     
-                     await sender.SendMessageAsync($"{senderPlayer} a kick {affectedPlayer} pour le motif: {kickedReason}");
-                     break;
-                 case "freeze":
-                     await sender.SendMessageAsync($"{senderPlayer} a freeze {affectedPlayer}");
-                     break;
-                 case ""
-             }
-         }*/
+
+        public Player GetPlayerFromConn(NetworkConnection conn)
+        {
+            foreach (var p in Nova.server.Players)
+            {
+                if (p.netId.Equals(conn.identity.netId))
+                {
+                    return p;
+                }
+            }
+
+            return null;
+        }
     }
 }

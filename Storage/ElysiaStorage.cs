@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using Socket.Newtonsoft.Json;
 using Socket.Newtonsoft.Json.Linq;
 using SQLite;
+using UnityEngine;
 
 namespace ElysiaInteractMenu.Storage
 {
@@ -140,6 +143,46 @@ namespace ElysiaInteractMenu.Storage
     }
 
 
+    public class BraceletStorage : JsonStorage
+    {
+
+        public List<int> BraceletPlayers = new List<int>();
+        public BraceletStorage(string fileName) : base(fileName)
+        {
+            if (!File.Exists(Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/" + fileName)))
+            {
+                var jsonObject = new JObject();
+
+                File.WriteAllText(Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/" + fileName),
+                    jsonObject.ToString());
+            }
+            LoadBraceletPlayers();
+        }
+
+        public void Save()
+        {
+            string filePath = Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/" + FileName);
+
+            JArray jArray = JArray.FromObject(BraceletPlayers);
+            string jsonContent = jArray.ToString();
+
+            File.WriteAllText(filePath, jsonContent);
+        }
+
+        private void LoadBraceletPlayers()
+        {
+            string filePath = Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/" + FileName);
+            string jsonContent = File.ReadAllText(filePath);
+
+            JToken jToken = JToken.Parse(jsonContent);
+
+            if (jToken is JArray jArray)
+            {
+                BraceletPlayers = jArray.ToObject<List<int>>();
+            }
+        }
+
+    }
     public class ConfigStorage : JsonStorage
     {
         public ConfigStorage(string fileName) : base(fileName)
@@ -164,7 +207,12 @@ namespace ElysiaInteractMenu.Storage
                     new JProperty("Delit de fuite", 100)
                 );
 
+                var vehicleCrimes = new JObject(new JProperty("Mauvais stationnement",120));
+                
+                jsonObject.Add("police_checkpoint","100,100,100");
+
                 jsonObject.Add("infractions", crimesList);
+                jsonObject.Add("infractions_vehicle",vehicleCrimes);
 
                 File.WriteAllText(Path.Combine(ElysiaMain.instance.pluginsPath, "ElysiaCore/" + fileName), jsonObject.ToString());            }
             Load();
@@ -182,6 +230,13 @@ namespace ElysiaInteractMenu.Storage
             return (string) _jObject[key];
         }
 
+        public Vector3 GetPolicePosition()
+        {
+            string[] brutPos = ((string)_jObject["police_checkpoint"]).Split(',');
+            
+            return new Vector3( Int32.Parse(brutPos[0]), Int32.Parse(brutPos[1]), Int32.Parse(brutPos[2]));
+
+        }
         public Dictionary<string, int> GetCrimes()
         {
             Dictionary<string, int> infractionDict = new Dictionary<string, int>();
@@ -196,6 +251,23 @@ namespace ElysiaInteractMenu.Storage
             }
 
             return infractionDict;
+        }
+
+        public Dictionary<string, int> GetVehicleCrimes()
+        {
+            Dictionary<string, int> infractionDict = new Dictionary<string, int>();
+            if (_jObject.TryGetValue("infractions_vehicle", out JToken infractions))
+            {
+                foreach (var infraction in infractions)
+                {
+                    string infractionName = ((JProperty)infraction).Name;
+                    int infractionValue = (int)((JProperty)infraction).Value;
+                    infractionDict.Add(infractionName, infractionValue);
+                }
+            }
+
+            return infractionDict;
+
         }
     }
 }
